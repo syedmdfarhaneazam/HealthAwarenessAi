@@ -1,35 +1,90 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useEffect } from "react";
+import { LanguageProvider } from "./context/LanguageContext";
+import LanguagePage from "./pages/LanguagePage";
+import LoginPage from "./pages/LoginPage";
+import ChatPage from "./pages/ChatPage";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState("language");
+  const [theme, setTheme] = useState("light");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("appTheme");
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+
+    // Check if user has selected language before
+    const savedLang = localStorage.getItem("appLang");
+    const authToken = localStorage.getItem("authToken");
+
+    if (authToken) {
+      setIsAuthenticated(true);
+      setCurrentPage("chat");
+    } else if (savedLang) {
+      setCurrentPage("login");
+    }
+  }, []);
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.className = theme;
+    localStorage.setItem("appTheme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "light" ? "dark" : "light"));
+  };
+
+  const handleLanguageSelected = () => {
+    setCurrentPage("login");
+  };
+
+  const handleAuthSuccess = () => {
+    setIsAuthenticated(true);
+    setCurrentPage("chat");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("appLang");
+    localStorage.removeItem("translations");
+    setIsAuthenticated(false);
+    setCurrentPage("language");
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <LanguageProvider>
+      <div
+        className={`min-h-screen transition-colors duration-300 ${
+          theme === "dark"
+            ? "bg-gray-900 text-white"
+            : "bg-gray-50 text-gray-900"
+        }`}
+      >
+        {currentPage === "language" && (
+          <LanguagePage onLanguageSelected={handleLanguageSelected} />
+        )}
+        {currentPage === "login" && (
+          <LoginPage
+            onAuthSuccess={handleAuthSuccess}
+            theme={theme}
+            toggleTheme={toggleTheme}
+          />
+        )}
+        {currentPage === "chat" && (
+          <ChatPage
+            theme={theme}
+            toggleTheme={toggleTheme}
+            onLogout={handleLogout}
+          />
+        )}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </LanguageProvider>
+  );
 }
 
-export default App
+export default App;
